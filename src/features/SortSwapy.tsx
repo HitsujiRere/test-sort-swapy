@@ -1,54 +1,101 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { createSwapy, type Swapy } from "swapy";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createSwapy, type SlotItemMapArray, type Swapy, utils } from "swapy";
+
+type Item = {
+  id: string;
+};
+
+const initialItems: Item[] = [{ id: "1" }, { id: "2" }, { id: "3" }];
 
 export const SortSwapy = () => {
-  const swapy = useRef<Swapy | null>(null);
-  const container = useRef(null);
+  const [items, setItems] = useState<Item[]>(initialItems);
+  const [slotItemMap, setSlotItemMap] = useState<SlotItemMapArray>(
+    utils.initSlotItemMap(items, "id")
+  );
+  const slottedItems = useMemo(
+    () => utils.toSlottedItems(items, "id", slotItemMap),
+    [items, slotItemMap]
+  );
+
+  const swapyRef = useRef<Swapy>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleDynamicSwapy = useEffectEvent((items: Item[]) =>
+    utils.dynamicSwapy(
+      swapyRef.current,
+      items,
+      "id",
+      slotItemMap,
+      setSlotItemMap
+    )
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `handleDynamicSwapy` is a effect event
+  useEffect(() => handleDynamicSwapy(items), [items]);
 
   useEffect(() => {
-    // If container element is loaded
-    if (container.current) {
-      swapy.current = createSwapy(container.current);
+    if (containerRef.current) {
+      swapyRef.current = createSwapy(containerRef.current, {
+        manualSwap: true,
+      });
 
-      // Your event listeners
-      swapy.current.onSwap((event) => {
+      swapyRef.current.onSwap((event) => {
         console.log("swap", event);
+        setSlotItemMap(event.newSlotItemMap.asArray);
       });
     }
 
     return () => {
-      // Destroy the swapy instance on component destroy
-      swapy.current?.destroy();
+      swapyRef.current?.destroy();
     };
   }, []);
 
+  const handleAppendItem = useCallback(() => {
+    setItems((items) => {
+      const newItem: Item = { id: `${items.length + 1}` };
+      return [...items, newItem];
+    });
+  }, []);
+
   return (
-    <div ref={container} className="flex gap-2">
-      <div
-        data-swapy-slot="1"
-        className="rounded border-4 border-slate-400 p-2"
-      >
-        <div
-          data-swapy-item="1"
-          className="grid size-16 items-center justify-center rounded bg-green-400"
-        >
-          <div>1</div>
-        </div>
+    <div ref={containerRef} className="flex flex-col gap-2">
+      <div className="grid grid-cols-[2fr_1fr] gap-2">
+        {slottedItems.map(({ slotId, itemId, item }) => (
+          <div
+            key={slotId}
+            data-swapy-slot={slotId}
+            className="rounded border-2 border-slate-400 p-1"
+          >
+            {item && (
+              <div
+                key={itemId}
+                data-swapy-item={itemId}
+                className="grid h-16 items-center justify-center rounded border-2 border-blue-500 bg-blue-400"
+              >
+                <div>{item.id}</div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      <div
-        data-swapy-slot="2"
-        className="rounded border-4 border-slate-400 p-2"
+      <button
+        type="button"
+        className="grid h-16 items-center justify-center rounded border-2 border-blue-500"
+        onClick={handleAppendItem}
       >
-        <div
-          data-swapy-item="2"
-          className="grid size-16 items-center justify-center rounded bg-blue-400"
-        >
-          <div>2</div>
-        </div>
-      </div>
+        +
+      </button>
     </div>
   );
 };
