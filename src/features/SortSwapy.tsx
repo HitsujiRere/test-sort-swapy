@@ -12,9 +12,18 @@ import { createSwapy, type SlotItemMapArray, type Swapy, utils } from "swapy";
 
 type Item = {
   id: string;
+  num: number;
 };
 
-const initialItems: Item[] = [{ id: "1" }, { id: "2" }, { id: "3" }];
+const randomPoint = () => {
+  return Math.floor(Math.random() * 100);
+};
+
+const initialItems: Item[] = [
+  { id: "1", num: 12 },
+  { id: "2", num: 34 },
+  { id: "3", num: 56 },
+];
 
 export const SortSwapy = () => {
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -62,13 +71,13 @@ export const SortSwapy = () => {
 
   const handleAppendItem = useCallback(() => {
     setItems((items) => {
-      const newItem: Item = { id: `${items.length + 1}` };
+      const newItem: Item = { id: `${items.length + 1}`, num: randomPoint() };
       return [...items, newItem];
     });
   }, []);
 
   return (
-    <div ref={containerRef} className="flex flex-col gap-2">
+    <div ref={containerRef} className="flex flex-col gap-4">
       <div className="grid grid-cols-[2fr_1fr] gap-2">
         {slottedItems.map(({ slotId, itemId, item }) => (
           <div
@@ -82,7 +91,10 @@ export const SortSwapy = () => {
                 data-swapy-item={itemId}
                 className="grid h-16 items-center justify-center rounded border-2 border-blue-500 bg-blue-400"
               >
-                <div>{item.id}</div>
+                <div className="flex gap-8">
+                  <div>#{item.id}</div>
+                  <div>{item.num}pt</div>
+                </div>
               </div>
             )}
           </div>
