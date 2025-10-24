@@ -12,18 +12,18 @@ import { createSwapy, type SlotItemMapArray, type Swapy, utils } from "swapy";
 
 type Item = {
   id: string;
-  num: number;
+  point: number;
 };
+
+const initialItems: Item[] = [
+  { id: "1", point: 12 },
+  { id: "2", point: 34 },
+  { id: "3", point: 56 },
+];
 
 const randomPoint = () => {
   return Math.floor(Math.random() * 100);
 };
-
-const initialItems: Item[] = [
-  { id: "1", num: 12 },
-  { id: "2", num: 34 },
-  { id: "3", num: 56 },
-];
 
 export const SortSwapy = () => {
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -39,18 +39,21 @@ export const SortSwapy = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleDynamicSwapy = useEffectEvent((items: Item[]) =>
+  const handleUpdateSwapy = useEffectEvent((items: Item[]) => {
     utils.dynamicSwapy(
       swapyRef.current,
       items,
       "id",
       slotItemMap,
       setSlotItemMap
-    )
-  );
+    );
+    requestAnimationFrame;
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `handleDynamicSwapy` is a effect event
-  useEffect(() => handleDynamicSwapy(items), [items]);
+  useEffect(() => {
+    handleUpdateSwapy(items);
+  }, [items]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -59,7 +62,6 @@ export const SortSwapy = () => {
       });
 
       swapyRef.current.onSwap((event) => {
-        console.log("swap", event);
         setSlotItemMap(event.newSlotItemMap.asArray);
       });
     }
@@ -70,14 +72,36 @@ export const SortSwapy = () => {
   }, []);
 
   const handleAppendItem = useCallback(() => {
-    setItems((items) => {
-      const newItem: Item = { id: `${items.length + 1}`, num: randomPoint() };
-      return [...items, newItem];
-    });
+    setItems((items) => [
+      ...items,
+      { id: `${items.length + 1}`, point: randomPoint() },
+    ]);
   }, []);
+
+  const handleSortItems = useCallback(() => {
+    setSlotItemMap((slotItemMap) => {
+      const sortedItems = items.toSorted((x, y) => x.point - y.point);
+      const newSlotItemMap: SlotItemMapArray = slotItemMap.map(
+        ({ slot }, i) => ({
+          slot,
+          item: sortedItems[i].id,
+        })
+      );
+      swapyRef.current?.update();
+      return newSlotItemMap;
+    });
+  }, [items]);
 
   return (
     <div ref={containerRef} className="flex flex-col gap-4">
+      <button
+        type="button"
+        className="grid h-16 items-center justify-center rounded border-2 border-blue-500"
+        onClick={handleSortItems}
+      >
+        Sort by point
+      </button>
+
       <div className="grid grid-cols-[2fr_1fr] gap-2">
         {slottedItems.map(({ slotId, itemId, item }) => (
           <div
@@ -91,9 +115,9 @@ export const SortSwapy = () => {
                 data-swapy-item={itemId}
                 className="grid h-16 items-center justify-center rounded border-2 border-blue-500 bg-blue-400"
               >
-                <div className="flex gap-8">
+                <div className="flex select-none gap-8">
                   <div>#{item.id}</div>
-                  <div>{item.num}pt</div>
+                  <div>{item.point}pt</div>
                 </div>
               </div>
             )}
